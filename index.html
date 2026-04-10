@@ -202,7 +202,7 @@ function updatePhase(){
 
     if(timer===200) phase="explode";
     if(timer===260) phase="text";
-    if(timer===500){
+    if(timer===400){
         phase="heart";
         timer=0;
         particles.forEach(p=>p.reset());
