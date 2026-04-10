@@ -200,9 +200,9 @@ for(let i=0;i<120;i++) stars.push(new Star());
 function updatePhase(){
     timer++;
 
-    if(timer===150) phase="explode";
+    if(timer===200) phase="explode";
     if(timer===150) phase="text";
-    if(timer===200){
+    if(timer===300){
         phase="heart";
         timer=0;
         particles.forEach(p=>p.reset());
