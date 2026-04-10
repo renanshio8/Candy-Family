@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Luna Transition</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: black;
+    font-family: Arial;
+}
+canvas { display: block; }
+
+.subtitle {
+    position: absolute;
+    top: 10%;
+    width: 100%;
+    text-align: center;
+    font-size: 22px;
+    color: white;
+    text-shadow: 0 0 15px #ff77aa;
+}
+</style>
+</head>
+
+<body>
+
+<div class="subtitle">
+    Don’t be sad anymore 💖<br>
+    your Bae and Candy family is with you ✨🍭
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+let particles = [];
+let meteors = [];
+let stars = [];
+
+let phase = "heart";
+let timer = 0;
+let angle = 0;
+
+// ❤️ HEART
+function heart3D(t, time) {
+    let x = 16 * Math.pow(Math.sin(t), 3);
+    let y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+    let z = Math.sin(t * 3 + time) * 15;
+
+    return { x: x * 12, y: y * 12, z };
+}
+
+// projection
+function project(x, y, z) {
+    let scale = 400 / (400 + z);
+    return {
+        x: canvas.width/2 + x * scale,
+        y: canvas.height/2 + y * scale
+    };
+}
+
+// ✨ TEXT SHAPE
+let textPoints = [];
+function generateText() {
+    let temp = document.createElement("canvas");
+    let tctx = temp.getContext("2d");
+
+    temp.width = 900;
+    temp.height = 200;
+
+    tctx.fillStyle = "white";
+    tctx.font = "bold 100px Arial";
+    tctx.fillText("Luna we love you", 50, 120);
+
+    let data = tctx.getImageData(0,0,temp.width,temp.height).data;
+
+    for (let y=0; y<temp.height; y+=4) {
+        for (let x=0; x<temp.width; x+=4) {
+            let i = (y * temp.width + x) * 4;
+            if (data[i+3] > 128) {
+                textPoints.push({x:x-450, y:y-100});
+            }
+        }
+    }
+}
+generateText();
+
+// ⭐ STARS
+class Star {
+    constructor(){
+        this.x=Math.random()*canvas.width;
+        this.y=Math.random()*canvas.height;
+    }
+    draw(){
+        ctx.fillStyle="#fff";
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,1.5,0,Math.PI*2);
+        ctx.fill();
+    }
+}
+
+// ☄️ METEORS
+class Meteor {
+    constructor(){this.reset();}
+    reset(){
+        this.x=Math.random()*canvas.width;
+        this.y=Math.random()*-canvas.height;
+        this.len=Math.random()*80+20;
+        this.speed=Math.random()*6+4;
+    }
+    update(){
+        this.x+=this.speed;
+        this.y+=this.speed;
+        if(this.y>canvas.height) this.reset();
+    }
+    draw(){
+        ctx.strokeStyle="#66ccff";
+        ctx.beginPath();
+        ctx.moveTo(this.x,this.y);
+        ctx.lineTo(this.x-this.len,this.y-this.len);
+        ctx.stroke();
+    }
+}
+
+// 💫 PARTICLES
+class Particle {
+    constructor(i){
+        this.i=i;
+        this.reset();
+    }
+
+    reset(){
+        this.x=Math.random()*canvas.width;
+        this.y=Math.random()*canvas.height;
+        this.vx=(Math.random()-0.5)*10;
+        this.vy=(Math.random()-0.5)*10;
+    }
+
+    update(time){
+        let t=this.i*0.04;
+
+        if(phase==="heart"){
+            let h=heart3D(t,time);
+
+            let rx=h.x*Math.cos(angle)-h.z*Math.sin(angle);
+            let rz=h.x*Math.sin(angle)+h.z*Math.cos(angle);
+
+            let p=project(rx,h.y,rz);
+
+            this.tx=p.x;
+            this.ty=p.y;
+
+            this.x += (this.tx-this.x)*0.1;
+            this.y += (this.ty-this.y)*0.1;
+        }
+
+        if(phase==="text"){
+            let tp=textPoints[this.i%textPoints.length];
+
+            this.tx = canvas.width/2 + tp.x;
+            this.ty = canvas.height/2 + tp.y;
+
+            this.x += (this.tx-this.x)*0.1;
+            this.y += (this.ty-this.y)*0.1;
+        }
+
+        if(phase==="explode"){
+            this.x += this.vx;
+            this.y += this.vy;
+        }
+    }
+
+    draw(){
+        ctx.fillStyle="#ff4d88";
+        ctx.shadowColor="#ff4d88";
+        ctx.shadowBlur=20;
+
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,2.5,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.shadowBlur=0;
+    }
+}
+
+// INIT
+for(let i=0;i<2500;i++) particles.push(new Particle(i));
+for(let i=0;i<100;i++) meteors.push(new Meteor());
+for(let i=0;i<120;i++) stars.push(new Star());
+
+// TIMELINE
+function updatePhase(){
+    timer++;
+
+    if(timer===100) phase="explode";
+    if(timer===100) phase="text";
+    if(timer===200){
+        phase="heart";
+        timer=0;
+        particles.forEach(p=>p.reset());
+    }
+}
+
+// ANIMATE
+function animate(time=0){
+    ctx.fillStyle="rgba(0,0,0,0.2)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    angle += 0.01;
+
+    stars.forEach(s=>s.draw());
+
+    meteors.forEach(m=>{
+        m.update();
+        m.draw();
+    });
+
+    particles.forEach(p=>{
+        p.update(time*0.002);
+        p.draw();
+    });
+
+    updatePhase();
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+
+</body>
+</html>
